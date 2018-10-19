@@ -60,7 +60,7 @@ import pandas as pd
 import six
 from six.moves import range
 
-from deepcpg import data as dat
+from deepcpg import data as dat # import folder ./deepcpg/data/, use functions in this folder
 from deepcpg.data import annotations as an
 from deepcpg.data import stats
 from deepcpg.data import dna
