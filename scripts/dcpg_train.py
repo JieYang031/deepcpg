@@ -62,18 +62,19 @@ import h5py as h5
 import logging
 import numpy as np
 import pandas as pd
-import six
+import six #wrapping functions between python 2 and 3 without any modification
 from six.moves import range
 
 from keras import backend as K
-from keras import callbacks as kcbk
+from keras import callbacks as kcbk #a set of functions to be applied at given stages of the training procedure  
+#can get a view on internal states and statistics of the model during training
 from keras.models import Model
 from keras.optimizers import Adam
 
-from deepcpg import callbacks as cbk
+from deepcpg import callbacks as cbk #the self-defined callbacks 
 from deepcpg import data as dat
 from deepcpg import metrics as met
-from deepcpg import models as mod
+from deepcpg import models as mod #include cpg, dna, joint models
 from deepcpg.data import hdf, OUTPUT_SEP
 from deepcpg.utils import format_table, make_dir, EPS
 
@@ -189,7 +190,7 @@ class App(object):
 
     def run(self, args):
         name = os.path.basename(args[0])
-        parser = self.create_parser(name)
+        parser = self.create_parser(name) #this create_parser is self-defined below. to parse input arguments
         opts = parser.parse_args(args[1:])
         return self.main(name, opts)
 
@@ -398,43 +399,46 @@ class App(object):
 
     def get_callbacks(self):
         opts = self.opts
-        callbacks = []
+        callbacks = [] #define callbacks arguments
 
         if opts.val_files:
-            callbacks.append(kcbk.EarlyStopping(
-                'val_loss' if opts.val_files else 'loss',
-                patience=opts.early_stopping,
-                verbose=1
+            callbacks.append(kcbk.EarlyStopping( #a function of callbacks
+                'val_loss' if opts.val_files else 'loss',  #val_loss and loss are the quantity to moniter
+                patience=opts.early_stopping,   #the number of epochs model can tolerate without improve
+                verbose=1 #verbosity mode
             ))
 
-        callbacks.append(kcbk.ModelCheckpoint(
-            os.path.join(opts.out_dir, 'model_weights_train.h5'),
-            save_best_only=False))
+        callbacks.append(kcbk.ModelCheckpoint( #save model after every epoch
+            os.path.join(opts.out_dir, 'model_weights_train.h5'),  #filepath, save the model
+            save_best_only=False)) #the lastest best model based on monitered quantity will be overwritten
+        
         monitor = 'val_loss' if opts.val_files else 'loss'
+        
         callbacks.append(kcbk.ModelCheckpoint(
             os.path.join(opts.out_dir, 'model_weights_val.h5'),
-            monitor=monitor,
-            save_best_only=True, verbose=1
+            monitor=monitor,  #quantity to moniter
+            save_best_only=True, verbose=1  # latest best model according to the quantity monitored will not be overwritten.
         ))
 
         max_time = int(opts.max_time * 3600) if opts.max_time else None
-        callbacks.append(cbk.TrainingStopper(
-            max_time=max_time,
-            stop_file=opts.stop_file,
-            verbose=1
+        callbacks.append(cbk.TrainingStopper( #Stop training after certain time or when file is detected.
+            max_time=max_time, #Maximum training time in seconds
+            stop_file=opts.stop_file, #Name of stop file that triggers the end of training when existing
+            verbose=1 #If `True`, log message when training is stopped.
         ))
 
-        def learning_rate_schedule(epoch):
+        def learning_rate_schedule(epoch): #calcualte learning rate schedule by input rate and decay rate
             lr = opts.learning_rate * opts.learning_rate_decay**epoch
             print('Learning rate: %.3g' % lr)
             return lr
 
-        callbacks.append(kcbk.LearningRateScheduler(learning_rate_schedule))
+        callbacks.append(kcbk.LearningRateScheduler(learning_rate_schedule)) #a function that takes an epoch index as input 
+        #(integer, indexed from 0) and current learning rate and returns a new learning rate as output (float).
 
         def save_lc(epoch, epoch_logs, val_epoch_logs):
             logs = {'lc_train.tsv': epoch_logs,
                     'lc_val.tsv': val_epoch_logs}
-            for name, logs in six.iteritems(logs):
+            for name, logs in six.iteritems(logs): #Returns an iterator over dictionary‘s items.
                 if not logs:
                     continue
                 logs = pd.DataFrame(logs)
@@ -442,25 +446,26 @@ class App(object):
                     f.write(perf_logs_str(logs))
 
         metrics = OrderedDict()
-        for metric_funs in six.itervalues(self.metrics):
+        for metric_funs in six.itervalues(self.metrics): #Returns an iterator over dictionary‘s values.
             for metric_fun in metric_funs:
                 metrics[metric_fun.__name__] = True
         metrics = ['loss'] + list(metrics.keys())
 
-        self.perf_logger = cbk.PerformanceLogger(
-            callbacks=[save_lc],
-            metrics=metrics,
-            precision=LOG_PRECISION,
-            verbose=not opts.no_log_outputs
+        self.perf_logger = cbk.PerformanceLogger( #Logs performance metrics during training.
+            callbacks=[save_lc], #List of functions with parameters `epoch`, `epoch_logs`, and
+        #`val_epoch_logs` that are called at the end of each epoch.
+            metrics=metrics, #Name of metrics to be logged.
+            precision=LOG_PRECISION, # Floating point precision. as defined: 4
+            verbose=not opts.no_log_outputs #If `True`, log performance metrics of individual outputs.
         )
         callbacks.append(self.perf_logger)
 
         if K._BACKEND == 'tensorflow' and not opts.no_tensorboard:
-            callbacks.append(kcbk.TensorBoard(
-                log_dir=opts.out_dir,
-                histogram_freq=0,
-                write_graph=True,
-                write_images=True
+            callbacks.append(kcbk.TensorBoard( #TensorBoard basic visualizations, which is visualization tool
+                log_dir=opts.out_dir, #the path of the directory where to save the log files to be parsed by TensorBoard.
+                histogram_freq=0, #frequency (in epochs) at which to compute activation and weight histograms for the layers of the model.
+                write_graph=True, #whether to visualize the graph in TensorBoard.
+                write_images=True #whether to write model weights to visualize as image in TensorBoard.
             ))
 
         return callbacks
@@ -498,7 +503,7 @@ class App(object):
             remove_outputs(dna_model)
             rename_layers(dna_model, 'dna')
         else:
-            log.info('Building DNA model ...')
+            log.info('Building DNA model ...') #without pre-trained model.
             dna_model_builder = mod.dna.get(opts.dna_model[0])(
                 l1_decay=opts.l1_decay,
                 l2_decay=opts.l2_decay,
@@ -683,8 +688,13 @@ class App(object):
         conv_layer.set_weights((cur_weights, cur_bias))
         print('%d filters initialized' % weights.shape[-1])
 
+        
+##this is the main function called here for model training
+##
     def main(self, name, opts):
-        logging.basicConfig(filename=opts.log_file,
+        
+        #set up logging
+        logging.basicConfig(filename=opts.log_file, #write log file for whole process
                             format='%(levelname)s (%(asctime)s): %(message)s')
         log = logging.getLogger(name)
         if opts.verbose:
@@ -699,7 +709,7 @@ class App(object):
         self.log = log
         self.opts = opts
 
-        make_dir(opts.out_dir)
+        make_dir(opts.out_dir) #use all the arguments stored in opts
 
         log.info('Building model ...')
         model = self.build_model()
@@ -710,6 +720,7 @@ class App(object):
             conv_layer = mod.get_first_conv_layer(model.layers)
             log.info('Initializing filters of %s ...' % conv_layer.name)
             self.init_filter_weights(opts.filter_weights, conv_layer)
+        
         mod.save_model(model, os.path.join(opts.out_dir, 'model.json'))
 
         log.info('Computing output statistics ...')
@@ -753,7 +764,7 @@ class App(object):
             self.metrics[output_name] = get_metrics(output_name)
 
         optimizer = Adam(lr=opts.learning_rate)
-        model.compile(optimizer=optimizer,
+        model.compile(optimizer=optimizer, #Configures the model for training.
                       loss=mod.get_objectives(output_names),
                       loss_weights=output_weights,
                       metrics=self.metrics)
