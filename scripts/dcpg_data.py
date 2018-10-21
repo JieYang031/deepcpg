@@ -46,7 +46,7 @@ See Also
 from __future__ import print_function
 from __future__ import division
 
-from collections import OrderedDict
+from collections import OrderedDict #import dictory remember order of adding
 import os
 import sys
 import warnings
@@ -60,6 +60,7 @@ import pandas as pd
 import six
 from six.moves import range
 
+#mainly used the self-defined functions in ./deepcpg/data/*.py.
 from deepcpg import data as dat # import folder ./deepcpg/data/, use functions in this folder
 from deepcpg.data import annotations as an
 from deepcpg.data import stats
@@ -71,7 +72,8 @@ from deepcpg.utils import make_dir
 
 def prepro_pos_table(pos_tables):
     """Extracts unique positions and sorts them."""
-    if not isinstance(pos_tables, list):
+    if not isinstance(pos_tables, list): #Returns a Boolean stating whether the object is an instance 
+                                         #or subclass of another object
         pos_tables = [pos_tables]
 
     pos_table = None
@@ -90,7 +92,7 @@ def prepro_pos_table(pos_tables):
 
 def split_ext(filename):
     """Remove file extension from `filename`."""
-    return os.path.basename(filename).split(os.extsep)[0]
+    return os.path.basename(filename).split(os.extsep)[0] #return file name
 
 
 def read_cpg_profiles(filenames, log=None, *args, **kwargs):
@@ -105,16 +107,18 @@ def read_cpg_profiles(filenames, log=None, *args, **kwargs):
         table.
     """
 
-    cpg_profiles = OrderedDict()
+    cpg_profiles = OrderedDict() #a dictionary which remember the order of item inserted, when iterating it, 
+                                 #items are returned in the order their keys were first added.
     for filename in filenames:
         if log:
             log(filename)
-        cpg_file = dat.GzipFile(filename, 'r')
-        output_name = split_ext(filename)
-        cpg_profile = dat.read_cpg_profile(cpg_file, sort=True, *args, **kwargs)
-        cpg_profiles[output_name] = cpg_profile
+        cpg_file = dat.GzipFile(filename, 'r') #Wrapper to read and write gzip-compressed files.
+        output_name = split_ext(filename) #Remove file extension from `filename`, defined above
+        cpg_profile = dat.read_cpg_profile(cpg_file, sort=True, *args, **kwargs) #Read CpG profile from TSV or bedGraph file.
+        #return :class:`pandas.DataFrame` with columns `chromo`, `pos`, `value`.
+        cpg_profiles[output_name] = cpg_profile #cpg_profiles store multiple sample information
         cpg_file.close()
-    return cpg_profiles
+    return cpg_profiles #return ordered dictory, each item is a pandas data frame
 
 
 def extract_seq_windows(seq, pos, wlen, seq_index=1, assert_cpg=False):
@@ -141,7 +145,7 @@ def extract_seq_windows(seq, pos, wlen, seq_index=1, assert_cpg=False):
 
     delta = wlen // 2
     nb_win = len(pos)
-    seq = seq.upper()
+    seq = seq.upper() #change to upper case
     seq_wins = np.zeros((nb_win, wlen), dtype='int8')
 
     for i in range(nb_win):
@@ -152,16 +156,18 @@ def extract_seq_windows(seq, pos, wlen, seq_index=1, assert_cpg=False):
             warnings.warn('No CpG site at position %d!' % (p + seq_index))
         win = seq[max(0, p - delta): min(len(seq), p + delta + 1)]
         if len(win) < wlen:
-            win = max(0, delta - p) * 'N' + win
-            win += max(0, p + delta + 1 - len(seq)) * 'N'
-            assert len(win) == wlen
-        seq_wins[i] = dna.char_to_int(win)
+            win = max(0, delta - p) * 'N' + win #add NNN to seq
+            win += max(0, p + delta + 1 - len(seq)) * 'N' #add something and assign the new value to it.
+            #this equals to win = win + max(0, p + delta + 1 - len(seq)) * 'N'
+            assert len(win) == wlen #assert: used to catch bugs
+        seq_wins[i] = dna.char_to_int(win) #Translate chars of single sequence `seq` to ints
+                                           #ATGCN were transferred to 0-4
     # Randomly choose missing nucleotides
-    idx = seq_wins == dna.CHAR_TO_INT['N']
+    idx = seq_wins == dna.CHAR_TO_INT['N'] 
     seq_wins[idx] = np.random.randint(0, 4, idx.sum())
-    assert seq_wins.max() < 4
+    assert seq_wins.max() < 4 #make sure this is true, or it will stop and report error
     if assert_cpg:
-        assert np.all(seq_wins[:, delta] == 3)
+        assert np.all(seq_wins[:, delta] == 3) #Test whether all array elements along a given axis evaluate to True.
         assert np.all(seq_wins[:, delta + 1] == 2)
     return seq_wins
 
@@ -169,23 +175,24 @@ def extract_seq_windows(seq, pos, wlen, seq_index=1, assert_cpg=False):
 def map_values(values, pos, target_pos, dtype=None, nan=dat.CPG_NAN):
     """Maps `values` array at positions `pos` to `target_pos`.
 
-    Inserts `nan` for uncovered positions.
+    Inserts `nan` for uncovered positions. 
     """
     assert len(values) == len(pos)
     assert np.all(pos == np.sort(pos))
     assert np.all(target_pos == np.sort(target_pos))
 
-    values = values.ravel()
+    values = values.ravel() #returns contiguous flattened array(1D array with all the input-array 
+                            #elements and with the same type as it).
     pos = pos.ravel()
     target_pos = target_pos.ravel()
-    idx = np.in1d(pos, target_pos)
+    idx = np.in1d(pos, target_pos) #Test whether each element of a 1-D array is also present in a second array.
     pos = pos[idx]
     values = values[idx]
     if not dtype:
         dtype = values.dtype
-    target_values = np.empty(len(target_pos), dtype=dtype)
-    target_values.fill(nan)
-    idx = np.in1d(target_pos, pos).nonzero()[0]
+    target_values = np.empty(len(target_pos), dtype=dtype) #create empty array with specified shape and type
+    target_values.fill(nan) #fill it with missing, default is -1
+    idx = np.in1d(target_pos, pos).nonzero()[0] #Return the indices of the elements that are non-zero.
     assert len(idx) == len(values)
     assert np.all(target_pos[idx] == pos)
     target_values[idx] = values
@@ -198,8 +205,8 @@ def map_cpg_tables(cpg_tables, chromo, chromo_pos):
     Positions in `cpg_tables` for `chromo`  must be a subset of `chromo_pos`.
     Inserts `dat.CPG_NAN` for uncovered positions.
     """
-    chromo_pos.sort()
-    mapped_tables = OrderedDict()
+    chromo_pos.sort() #sorts the elements of a given list in a specific order
+    mapped_tables = OrderedDict() #create dictionary
     for name, cpg_table in six.iteritems(cpg_tables):
         cpg_table = cpg_table.loc[cpg_table.chromo == chromo]
         cpg_table = cpg_table.sort_values('pos')
@@ -218,7 +225,7 @@ def format_out_of(out, of):
 def get_stats_meta(names):
     funs = OrderedDict()
     for name in names:
-        fun = stats.get(name)
+        fun = stats.get(name) #Return object from module by its name
         if name in ['mode', 'cat_var', 'cat2_var', 'diff']:
             dtype = np.int8
         else:
