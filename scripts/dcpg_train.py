@@ -504,10 +504,10 @@ class App(object):
             rename_layers(dna_model, 'dna')
         else:
             log.info('Building DNA model ...') #without pre-trained model.
-            dna_model_builder = mod.dna.get(opts.dna_model[0])(
-                l1_decay=opts.l1_decay,
-                l2_decay=opts.l2_decay,
-                dropout=opts.dropout)
+            dna_model_builder = mod.dna.get(opts.dna_model[0])( #set up parameters
+                l1_decay=opts.l1_decay, #l1_decay: default=0.0001
+                l2_decay=opts.l2_decay,  #l2_decay: default=0.0001
+                dropout=opts.dropout) #default = 0.0
             dna_wlen = dat.get_dna_wlen(opts.train_files[0], opts.dna_wlen)
             dna_inputs = dna_model_builder.inputs(dna_wlen)
             dna_model = dna_model_builder(dna_inputs)
