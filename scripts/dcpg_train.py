@@ -254,7 +254,8 @@ class App(object):
         g.add_argument(
             '--fine_tune',
             help='Only train output layers',
-            action='store_true')
+            action='store_true') . #action used to specify how the command line argument will be handled.
+         #store_true: this store the value "TRUE" for this argument. It can also be "store_false"
         g.add_argument(
             '--train_models',
             help='Only train the specified models',
