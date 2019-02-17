@@ -420,7 +420,7 @@ class App(object):
                 log=log.info)
 
         # Create table with unique positions
-        if opts.pos_file:
+        if opts.pos_file:  #the pos_file provide the CpG positions which need to be predicted
             # Read positions from file
             log.info('Reading position table ...')
             pos_table = pd.read_table(opts.pos_file, usecols=[0, 1],
@@ -430,7 +430,7 @@ class App(object):
             pos_table['chromo'] = dat.format_chromo(pos_table['chromo'])
             pos_table = prepro_pos_table(pos_table)
         else:
-            # Extract positions from profiles
+            # Extract positions from profiles, if not provided. Predict position which available in at least one cells.
             pos_tables = []
             for cpg_table in list(outputs['cpg'].values()):
                 pos_tables.append(cpg_table[['chromo', 'pos']])
