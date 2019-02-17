@@ -498,14 +498,15 @@ class App(object):
     def build_dna_model(self):
         opts = self.opts
         log = self.log
-        if os.path.exists(opts.dna_model[0]):
+        if os.path.exists(opts.dna_model[0]):   #dna_model[0] is either the existing model or model name, such as: CnnL2h128 CnnL2h256
             log.info('Loading existing DNA model ...')
             dna_model = mod.load_model(opts.dna_model, log=log.info)
             remove_outputs(dna_model)
             rename_layers(dna_model, 'dna')
         else:
             log.info('Building DNA model ...') #without pre-trained model.
-            dna_model_builder = mod.dna.get(opts.dna_model[0])( #set up parameters
+            dna_model_builder = mod.dna.get(opts.dna_model[0])( #mod.dna.get() Return object from module by its name.
+                #the name can be CnnL2h128, CnnL2h256. the model's structure is well-defined. extract by the name of model.
                 l1_decay=opts.l1_decay, #l1_decay: default=0.0001
                 l2_decay=opts.l2_decay,  #l2_decay: default=0.0001
                 dropout=opts.dropout) #default = 0.0
@@ -514,6 +515,40 @@ class App(object):
             dna_model = dna_model_builder(dna_inputs)
         return dna_model
 
+    
+    ##by setting the dna_model[0]="CnnL2h128", the return dna_model summary looks like:
+#Basically, it specify the model structure as what you gave.
+#>>> dna_model.summary()
+#_________________________________________________________________
+#Layer (type)                 Output Shape              Param #   
+#=================================================================
+#dna (InputLayer)             (None, 1001, 4)           0         
+#_________________________________________________________________
+#dna/conv1d_1 (Conv1D)        (None, 991, 128)          5760      
+#_________________________________________________________________
+#dna/activation_1 (Activation (None, 991, 128)          0         
+#________________________________________________________________
+#dna/max_pooling1d_1 (MaxPool (None, 247, 128)          0         
+#_________________________________________________________________
+#dna/conv1d_2 (Conv1D)        (None, 245, 256)          98560     
+#_________________________________________________________________
+#na/activation_2 (Activation (None, 245, 256)          0         
+#_________________________________________________________________
+#dna/max_pooling1d_2 (MaxPool (None, 122, 256)          0         
+#_________________________________________________________________
+#dna/flatten_1 (Flatten)      (None, 31232)             0         
+#_________________________________________________________________
+#dna/dense_1 (Dense)          (None, 128)               3997824   
+#_________________________________________________________________
+#dna/activation_3 (Activation (None, 128)               0         
+#_________________________________________________________________
+#dna/dropout_1 (Dropout)      (None, 128)               0         
+#=================================================================
+#Total params: 4,102,144
+#Trainable params: 4,102,144
+#Non-trainable params: 0
+
+    
     def build_cpg_model(self):
         opts = self.opts
         log = self.log
