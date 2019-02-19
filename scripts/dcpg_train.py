@@ -398,7 +398,8 @@ class App(object):
             default=1)
         return p
 
-    def get_callbacks(self):
+    def get_callbacks(self): 
+        #callbacks, a function in keras, used to view the internal statistics and states during the training process
         opts = self.opts
         callbacks = [] #define callbacks arguments
 
