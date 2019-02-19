@@ -404,12 +404,15 @@ class App(object):
         callbacks = [] #define callbacks arguments
 
         if opts.val_files:
-            callbacks.append(kcbk.EarlyStopping( #a function of callbacks
+            callbacks.append(kcbk.EarlyStopping( #top training when a monitored quantity has stopped improving
                 'val_loss' if opts.val_files else 'loss',  #val_loss and loss are the quantity to moniter
                 patience=opts.early_stopping,   #the number of epochs model can tolerate without improve
                 verbose=1 #verbosity mode
             ))
 
+ #keras.callbacks.ModelCheckpoint(filepath, monitor='val_loss', verbose=0, 
+ #save_best_only=False, save_weights_only=False, mode='auto', period=1)
+            
         callbacks.append(kcbk.ModelCheckpoint( #save model after every epoch
             os.path.join(opts.out_dir, 'model_weights_train.h5'),  #filepath, save the model
             save_best_only=False)) #the lastest best model based on monitered quantity will be overwritten
@@ -417,7 +420,7 @@ class App(object):
         monitor = 'val_loss' if opts.val_files else 'loss'
         
         callbacks.append(kcbk.ModelCheckpoint(
-            os.path.join(opts.out_dir, 'model_weights_val.h5'),
+            os.path.join(opts.out_dir, 'model_weights_val.h5'),  #filepath
             monitor=monitor,  #quantity to moniter
             save_best_only=True, verbose=1  # latest best model according to the quantity monitored will not be overwritten.
         ))
@@ -616,7 +619,7 @@ class App(object):
         if opts.cpg_model:
             cpg_model = self.build_cpg_model()
 
-        if dna_model is not None and cpg_model is not None:
+        if dna_model is not None and cpg_model is not None:  #both dna_model and cpg_model are provided
             log.info('Joining models ...')
             joint_model_builder = mod.joint.get(opts.joint_model)(
                 l1_decay=opts.l1_decay,
@@ -642,15 +645,15 @@ class App(object):
 
     def set_trainability(self, model):
         opts = self.opts
-        trainable = []
-        not_trainable = []
-        if opts.fine_tune:
+        trainable = []  #create a list
+        not_trainable = []  #create a list
+        if opts.fine_tune: #only train output layers
             not_trainable.append('.*')
-        elif opts.train_models:
+        elif opts.train_models:  #only train the specified model, including dna, cpg, and joint
             not_trainable.append('.*')
             for name in opts.train_models:
                 trainable.append('%s/' % name)
-        if opts.freeze_filter:
+        if opts.freeze_filter:  #Exclude filter weights of first convolutional layer from training
             not_trainable.append(mod.get_first_conv_layer(model.layers).name)
         if not trainable and opts.trainable:
             trainable = opts.trainable
@@ -660,7 +663,7 @@ class App(object):
         if not trainable and not not_trainable:
             return
 
-        table = OrderedDict()
+        table = OrderedDict() #dictionary which remember the order
         table['layer'] = []
         table['trainable'] = []
         for layer in model.layers:
@@ -693,8 +696,8 @@ class App(object):
         assert weights.ndim == 4
         if weights.shape[1] != 1:
             weights = weights[:, :, :, 0]
-            weights = np.swapaxes(weights, 0, 2)
-            weights = np.expand_dims(weights, 1)
+            weights = np.swapaxes(weights, 0, 2) #interchage two axes of an array.
+            weights = np.expand_dims(weights, 1) #Expand the shape of an array
 
         # filter_size x 1 x 4 x nb_filter
         cur_weights, cur_bias = conv_layer.get_weights()
