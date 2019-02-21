@@ -81,14 +81,22 @@ def prepro_pos_table(pos_tables):
 
     pos_table = None
     for next_pos_table in pos_tables:
-        if pos_table is None:
-            pos_table = next_pos_table
-        else:
-            pos_table = pd.concat([pos_table, next_pos_table])
+        if pos_table is None:  #for 1st round of loop: pos_table = None because just assigned, next_pos_table = pos_tables[0]
+            pos_table = next_pos_table #pos_table = next_pos_table = pos_tables[0]
+        else:  #for 2nd and all following round, pos_table != None
+            pos_table = pd.concat([pos_table, next_pos_table]) # concatenate all samples' pos together.
         pos_table = pos_table.groupby('chromo').apply(
-            lambda df: pd.DataFrame({'pos': np.unique(df['pos'])}))
-        pos_table.reset_index(inplace=True)
-        pos_table = pos_table[['chromo', 'pos']]
+            lambda df: pd.DataFrame({'pos': np.unique(df['pos'])})) ##keep only unique position value (int32).
+        #also, 'pos' has been grouped by chromo
+        pos_table.reset_index(inplace=True)  #reset index, will show three columns, "chromo", "level_1", "pos"
+        pos_table = pos_table[['chromo', 'pos']] #select columns
+        
+#>>> pos_table.iloc[:10,]
+#   chromo  level_1      pos
+#0      1        0  3000827
+#1      1        1  3001007
+#2      1        2  3001018
+
         pos_table.sort_values(['chromo', 'pos'], inplace=True)
     return pos_table
 
