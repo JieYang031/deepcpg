@@ -188,19 +188,21 @@ def map_values(values, pos, target_pos, dtype=None, nan=dat.CPG_NAN):
 
     Inserts `nan` for uncovered positions. 
     """
-    assert len(values) == len(pos)
-    assert np.all(pos == np.sort(pos))
-    assert np.all(target_pos == np.sort(target_pos))
+    assert len(values) == len(pos) #judge T/F, T: keep running; F: stop the program
+    assert np.all(pos == np.sort(pos)) #check if pos has been sorted
+    assert np.all(target_pos == np.sort(target_pos)) #check if target_pos has been sorted
 
     values = values.ravel() #returns contiguous flattened array(1D array with all the input-array 
                             #elements and with the same type as it).
+        #however, values = cpg_table.value.values, it is already a 1D array
     pos = pos.ravel()
-    target_pos = target_pos.ravel()
-    idx = np.in1d(pos, target_pos) #Test whether each element of a 1-D array is also present in a second array.
-    pos = pos[idx]
+    target_pos = target_pos.ravel() #maybe just double verify??
+    idx = np.in1d(pos, target_pos) #Test whether each element of a 1-D array is also present in a second array. 
+    #pos is much shorter than the target_pos, but make sure the first is fully covered by the second.
+    pos = pos[idx] #idx is all TRUE.
     values = values[idx]
     if not dtype:
-        dtype = values.dtype
+        dtype = values.dtype #dtype set as int8
     target_values = np.empty(len(target_pos), dtype=dtype) #create empty array with specified shape and type
     target_values.fill(nan) #fill it with missing, default is -1
     idx = np.in1d(target_pos, pos).nonzero()[0] #Return the indices of the elements that are non-zero.
@@ -216,14 +218,16 @@ def map_cpg_tables(cpg_tables, chromo, chromo_pos):
     Positions in `cpg_tables` for `chromo`  must be a subset of `chromo_pos`.
     Inserts `dat.CPG_NAN` for uncovered positions.
     """
-    chromo_pos.sort() #sorts the elements of a given list in a specific order
+    chromo_pos.sort() #sorts the elements of a given list in a specific order, numpy array with 1D 
     mapped_tables = OrderedDict() #create dictionary
-    for name, cpg_table in six.iteritems(cpg_tables):
-        cpg_table = cpg_table.loc[cpg_table.chromo == chromo]
-        cpg_table = cpg_table.sort_values('pos')
-        mapped_table = map_values(cpg_table.value.values,
-                                  cpg_table.pos.values,
-                                  chromo_pos)
+    for name, cpg_table in six.iteritems(cpg_tables): #cpg_tables, OrderedDict, 
+        ##cpg_tables: sample items, each item stored each sample's chro pos, and value
+        cpg_table = cpg_table.loc[cpg_table.chromo == chromo] #selected cpg_table, #samples rows * 3 column
+        cpg_table = cpg_table.sort_values('pos') #sort by position column
+        mapped_table = map_values(cpg_table.value.values, #1D numpy array, (266747,)
+                                  cpg_table.pos.values, #1D numpy array, (266747,)
+                                  chromo_pos) #1D numpy array, (402166,)
+        #return numpy 1D array. (402166,), exit 1, 0, -1 (nan default value)
         assert len(mapped_table) == len(chromo_pos)
         mapped_tables[name] = mapped_table
     return mapped_tables
@@ -463,16 +467,23 @@ class App(object):
         for chromo in pos_table.chromo.unique():
             log.info('-' * 80)
             log.info('Chromosome %s ...' % (chromo))
-            idx = pos_table.chromo == chromo
-            chromo_pos = pos_table.loc[idx].pos.values
+            idx = pos_table.chromo == chromo   ##idx is T/F for whether the entries are equal to the chromo
+            chromo_pos = pos_table.loc[idx].pos.values #a numpy array with 1D data
             chromo_outputs = OrderedDict()
 
             if 'cpg' in outputs:
                 # Concatenate CpG tables into single nb_site x nb_output matrix
                 chromo_outputs['cpg'] = map_cpg_tables(outputs['cpg'],
-                                                       chromo, chromo_pos)
+                                                       chromo, chromo_pos) 
+                #chromo_outputs, one array called 'cpg', 'cpg' has #sample array, 
+                #each item is mapped table of target_pos with value filled
+                #OrderedDict([('BS27_1_SER', array([1, 1, 1, ..., 1, 1, 0], dtype=int8)), 
+                #('BS27_3_SER', array([-1,  1,  1, ...,  1, -1, -1], dtype=int8))])
                 chromo_outputs['cpg_mat'] = np.vstack(
                     list(chromo_outputs['cpg'].values())).T
+                #add one more array to it. np.vstack, stack array sequence vertically
+                #chromo_outputs['cpg_mat'].shape=(402166, 2)
+                #402166 is the CHR1 target pos number, 2 is the input two samples, BS27_1_SER, BS27_3_SER
                 assert len(chromo_outputs['cpg_mat']) == len(chromo_pos)
 
             if 'cpg_mat' in chromo_outputs and opts.cpg_cov:
