@@ -71,10 +71,10 @@ def read_file(filename, gzip=None):
     if gzip is None:
         gzip = filename.endswith('.gz')
     if gzip:
-        lines = gz.open(filename, 'r').read().decode()
+        lines = gz.open(filename, 'r').read().decode() # read lines as string
     else:
         lines = open(filename, 'r').read()
-    lines = lines.splitlines()
+    lines = lines.splitlines() #lines splitted as list
     return parse_lines(lines)
 
 
