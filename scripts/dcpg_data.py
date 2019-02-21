@@ -69,6 +69,8 @@ from deepcpg.data import fasta
 from deepcpg.data import feature_extractor as fext
 from deepcpg.utils import make_dir
 
+#the input is a list, length=#samples. sample has a pd data frame with: chromo, pos.
+#the output of this function is merged pd data frame with chromo and pos. Any position ever exist in one sample will be kept.
 
 def prepro_pos_table(pos_tables):
     """Extracts unique positions and sorts them."""
