@@ -70,12 +70,13 @@ from deepcpg.data import feature_extractor as fext
 from deepcpg.utils import make_dir
 
 #the input is a list, length=#samples. sample has a pd data frame with: chromo, pos.
-#the output of this function is merged pd data frame with chromo and pos. Any position ever exist in one sample will be kept.
+#the output of this function is merged pd data frame with chromo and pos. Any position ever exist in one sample 
+#will be kept and all positions will be sorted
 
 def prepro_pos_table(pos_tables):
     """Extracts unique positions and sorts them."""
-    if not isinstance(pos_tables, list): #Returns a Boolean stating whether the object is an instance 
-                                         #or subclass of another object
+    if not isinstance(pos_tables, list): #check if pos_tables is a list. This may happen if only one file was read for it.
+        #isinstance(object, classinfo), used to check if the object belongs to the class.
         pos_tables = [pos_tables]
 
     pos_table = None
