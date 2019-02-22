@@ -574,6 +574,15 @@ class App(object):
                                                      dtype=fun[1],
                                                      compression='gzip')
 
+ #until here: 
+#>>> chunk_file.visit(printname)
+#chromo
+#outputs
+#outputs/cpg
+#outputs/cpg/BS27_1_SER
+#utputs/cpg/BS27_3_SER
+#pos
+
                 # Write input features
                 in_group = chunk_file.create_group('inputs')
 
