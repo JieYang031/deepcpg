@@ -522,9 +522,10 @@ class App(object):
                 chunk_idx = slice(chunk_start, chunk_end)
                 chunk_pos = chromo_pos[chunk_idx]
 
-                chunk_outputs = select_dict(chromo_outputs, chunk_idx)
+                chunk_outputs = select_dict(chromo_outputs, chunk_idx) #OrderedDict()
+                #chunk_outputs is 1D array
 
-                filename = 'c%s_%06d-%06d.h5' % (chromo, chunk_start, chunk_end)
+                filename = 'c%s_%06d-%06d.h5' % (chromo, chunk_start, chunk_end) 
                 filename = os.path.join(opts.out_dir, filename)
                 chunk_file = h5.File(filename, 'w')
 
