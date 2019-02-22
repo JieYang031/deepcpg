@@ -37,9 +37,13 @@ class KnnCpgFeatureExtractor(object):
             cpg: CpG states to the left (0:k) and right (k:2k)
             dist: Distances to the left (0:k) and right (k:2k)
         """
+#as the input function in dcpg_data.py, we get to know that:
+# x = chunk_pos; x.shape = (32768,)
+# y = cpg_table.pos.values; y.shape = (3971744,)
+#ys = cpg_table.value.values; ys.shape = (3971744,) This is the original input data information
 
-        n = len(x)
-        m = len(y)
+        n = len(x) #target length
+        m = len(y) #provided length
         k = self.k
         kk = 2 * self.k
         yc = self.__larger_equal(x, y)
@@ -98,7 +102,7 @@ class KnnCpgFeatureExtractor(object):
 
         n = len(x)
         m = len(y)
-        rv = np.empty(n, dtype=np.int)
+        rv = np.empty(n, dtype=np.int) #Return a new array of given shape and type, without initializing entries
         i = 0
         j = 0
         while i < n and j < m:
