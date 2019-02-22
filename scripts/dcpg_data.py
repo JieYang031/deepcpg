@@ -501,9 +501,9 @@ class App(object):
 
             # Read DNA of chromosome
             chromo_dna = None
-            if opts.dna_files:
-                chromo_dna = fasta.read_chromo(opts.dna_files, chromo)
-
+            if opts.dna_files: #this will only read the corresponding chromosome sequence
+                chromo_dna = fasta.read_chromo(opts.dna_files, chromo) #chromo_dna is string, len=195471971 for chr1
+ 
             annos = None
             if opts.anno_files:
                 log.info('Annotating CpG sites ...')
