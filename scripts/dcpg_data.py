@@ -531,27 +531,38 @@ class App(object):
 
                 # Write positions
                 chunk_file.create_dataset('chromo', shape=(len(chunk_pos),),
-                                          dtype='S2')
-                chunk_file['chromo'][:] = chromo.encode()
+                                          dtype='S2') #create_dataset() in default for h5py
+                chunk_file['chromo'][:] = chromo.encode() #set the chunk_file['chromo'] = 1 for all.
+                #chunk_file['chromo'].shape = (32768,)
                 chunk_file.create_dataset('pos', data=chunk_pos, dtype=np.int32)
+                #chunk_file['pos'].shape = (32768,) # the size is default chunk_size
 
-                if len(chunk_outputs):
+                if len(chunk_outputs): #len(chunk_outputs)=2
                     out_group = chunk_file.create_group('outputs')
-
+                    #for now, type(out_group) = <class 'h5py._hl.group.Group'>
+                    #list(out_group) = []
+                    
                 # Write cpg profiles
                 if 'cpg' in chunk_outputs:
                     for name, value in six.iteritems(chunk_outputs['cpg']):
+                        #name = ["BS27_1_SER", 'BS27_3_SER'] # the sample name
+                        #value= 2 numpy array, both with shape=(32768,)
                         assert len(value) == len(chunk_pos)
                         # Round continuous values
                         out_group.create_dataset('cpg/%s' % name,
                                                  data=value.round(),
                                                  dtype=np.int8,
                                                  compression='gzip')
+                        #type(out_group)= <class 'h5py._hl.group.Group'>
+                        #list(out_group) = ['cpg']
+                        #list(out_group['cpg']) = ['BS27_1_SER', 'BS27_3_SER']
+                        
                     # Compute and write statistics
                     if cpg_stats_meta is not None:
                         log.info('Computing per CpG statistics ...')
                         cpg_mat = np.ma.masked_values(chunk_outputs['cpg_mat'],
                                                       dat.CPG_NAN)
+                        #cpg_mat.shape=(32768, 2)
                         mask = np.sum(~cpg_mat.mask, axis=1)
                         mask = mask < opts.cpg_stats_cov
                         for name, fun in six.iteritems(cpg_stats_meta):
