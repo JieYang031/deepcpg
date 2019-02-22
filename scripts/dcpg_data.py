@@ -155,9 +155,9 @@ def extract_seq_windows(seq, pos, wlen, seq_index=1, assert_cpg=False):
     """
 
     delta = wlen // 2
-    nb_win = len(pos)
+    nb_win = len(pos) #nb_win=32768, which is the default chunk size
     seq = seq.upper() #change to upper case
-    seq_wins = np.zeros((nb_win, wlen), dtype='int8')
+    seq_wins = np.zeros((nb_win, wlen), dtype='int8') #seq_wins.shape = (32768, 1001)
 
     for i in range(nb_win):
         p = pos[i] - seq_index
@@ -166,7 +166,8 @@ def extract_seq_windows(seq, pos, wlen, seq_index=1, assert_cpg=False):
         if seq[p:p + 2] != 'CG':
             warnings.warn('No CpG site at position %d!' % (p + seq_index))
         win = seq[max(0, p - delta): min(len(seq), p + delta + 1)]
-        if len(win) < wlen:
+        if len(win) < wlen: #which means cannot extract 1001 window size from original fasta sequence.
+            #this may caused by the targeted position is so close to end of the chromosome
             win = max(0, delta - p) * 'N' + win #add NNN to seq
             win += max(0, p + delta + 1 - len(seq)) * 'N' #add something and assign the new value to it.
             #this equals to win = win + max(0, p + delta + 1 - len(seq)) * 'N'
@@ -174,8 +175,9 @@ def extract_seq_windows(seq, pos, wlen, seq_index=1, assert_cpg=False):
         seq_wins[i] = dna.char_to_int(win) #Translate chars of single sequence `seq` to ints
                                            #ATGCN were transferred to 0-4
     # Randomly choose missing nucleotides
-    idx = seq_wins == dna.CHAR_TO_INT['N'] 
+    idx = seq_wins == dna.CHAR_TO_INT['N'] #idx is numpy array with both True/False value
     seq_wins[idx] = np.random.randint(0, 4, idx.sum())
+    #np.random.randint(0, 4, idx.sum()).shape = (992,) which is the same shape as idx
     assert seq_wins.max() < 4 #make sure this is true, or it will stop and report error
     if assert_cpg:
         assert np.all(seq_wins[:, delta] == 3) #Test whether all array elements along a given axis evaluate to True.
@@ -591,9 +593,13 @@ class App(object):
                     log.info('Extracting DNA sequence windows ...')
                     dna_wins = extract_seq_windows(chromo_dna, pos=chunk_pos,
                                                    wlen=opts.dna_wlen)
+                    #give the fasta sequence of one chromosome ('chromo_dna'), and targeted position ('chunk_pos')
+                    #, and wlen=1001, return a numpy array with shape as (32768, 1001). The array has been transfered as
+                    #number rather than base pair
                     assert len(dna_wins) == len(chunk_pos)
                     in_group.create_dataset('dna', data=dna_wins, dtype=np.int8,
                                             compression='gzip')
+                    #>>> in_group.visit(printname) = dna
 
                 # CpG neighbors
                 if opts.cpg_wlen:
@@ -603,6 +609,8 @@ class App(object):
                     # outputs['cpg'], since neighboring CpG sites might lie
                     # outside chunk borders and un-mapped values are needed
                     for name, cpg_table in six.iteritems(outputs['cpg']):
+                        #name="BS27_1_SER" and "BS27_3_SER"
+                        #cpg_table = numpy array, with three columns information for each input sample.
                         cpg_table = cpg_table.loc[cpg_table.chromo == chromo]
                         state, dist = cpg_ext.extract(chunk_pos,
                                                       cpg_table.pos.values,
