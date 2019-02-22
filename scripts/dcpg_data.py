@@ -614,13 +614,13 @@ class App(object):
                         cpg_table = cpg_table.loc[cpg_table.chromo == chromo]
                         state, dist = cpg_ext.extract(chunk_pos,
                                                       cpg_table.pos.values,
-                                                      cpg_table.value.values)
+                                                      cpg_table.value.values) #extract the cpg distance and state with wlen
                         nan = np.isnan(state)
-                        state[nan] = dat.CPG_NAN
+                        state[nan] = dat.CPG_NAN #set nan value as -1, which means unknown
                         dist[nan] = dat.CPG_NAN
                         # States can be binary (np.int8) or continuous
                         # (np.float32).
-                        state = state.astype(cpg_table.value.dtype, copy=False)
+                        state = state.astype(cpg_table.value.dtype, copy=False) #set data type
                         dist = dist.astype(np.float32, copy=False)
 
                         assert len(state) == len(chunk_pos)
@@ -629,9 +629,10 @@ class App(object):
 
                         group = context_group.create_group(name)
                         group.create_dataset('state', data=state,
-                                             compression='gzip')
+                                             compression='gzip') 
                         group.create_dataset('dist', data=dist,
                                              compression='gzip')
+                        #list(group) = ['state','dist']
 
                 if win_stats_meta is not None and opts.cpg_wlen:
                     log.info('Computing window-based statistics ...')
